@@ -175,6 +175,10 @@ class ReportPanel(QFrame):
         # Insert before the stretch
         idx = self._plots_vl.count() - 1
         self._plots_vl.insertWidget(idx, row)
+        # Populate GoF values immediately if sessions are available
+        sessions = [s for s in self._get_sessions() if s.analysed]
+        if sessions:
+            row.update_fit_options(sessions)
 
     def _remove_plot_row(self, row: PlotRowWidget) -> None:
         self._plot_rows.remove(row)
@@ -192,7 +196,14 @@ class ReportPanel(QFrame):
         else:
             self._content.show()
             self._toggle_btn.setText("▼  Report Builder")
+            self.refresh_fit_options()
         self._expanded = not self._expanded
+
+    def refresh_fit_options(self) -> None:
+        """Recompute GoF for all plot rows using the current analysed sessions."""
+        sessions = [s for s in self._get_sessions() if s.analysed]
+        for row in self._plot_rows:
+            row.update_fit_options(sessions)
 
     # ------------------------------------------------------------------
     # Actions

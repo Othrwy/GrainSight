@@ -23,6 +23,7 @@ from PyQt6.QtWidgets import (
 
 from ..data.io import export_csv, load_multi_session, save_multi_session
 from ..data.models import ImageSession
+from .batch_tab import BatchTab
 from .image_tab import ImageTab
 from .report_panel import ReportPanel
 from .theme import (
@@ -100,6 +101,11 @@ class MainWindow(QMainWindow):
         analyse_all_btn.clicked.connect(self._analyse_all)
         left_vl.addWidget(analyse_all_btn)
 
+        batch_btn = QPushButton("+ Batch Test")
+        batch_btn.setToolTip("Open a new batch test tab (disc × hopper, 10 cycles)")
+        batch_btn.clicked.connect(self._new_batch_tab)
+        left_vl.addWidget(batch_btn)
+
         self._top_splitter.addWidget(left)
 
         # ── Tab widget ───────────────────────────────────────────────────
@@ -166,6 +172,11 @@ class MainWindow(QMainWindow):
         act.triggered.connect(self._analyse_all)
         anal_menu.addAction(act)
 
+        act = QAction("New Batch Test…", self)
+        act.setShortcut("Ctrl+B")
+        act.triggered.connect(self._new_batch_tab)
+        anal_menu.addAction(act)
+
         # Help menu
         help_menu = mb.addMenu("&Help")
         act = QAction("About GrainSight", self)
@@ -218,6 +229,8 @@ class MainWindow(QMainWindow):
 
         tab = ImageTab(session, image_bgr)
         tab.session_changed.connect(self._refresh_list_item)
+        tab.session_changed.connect(self._report_panel.refresh_fit_options)
+        tab.propagate_to_all.connect(self._on_propagate_to_all)
 
         name = os.path.splitext(os.path.basename(session.image_path))[0]
         idx = self._tab_widget.addTab(tab, name)
@@ -326,6 +339,48 @@ class MainWindow(QMainWindow):
             w = self._tab_widget.widget(i)
             if isinstance(w, ImageTab) and w.session.is_calibrated and not w.session.analysed:
                 w._run_analysis()
+
+    def _on_propagate_to_all(
+        self,
+        calibration: object,
+        cup_mask: object,
+        limits: object,
+        density: float = 1.5,
+    ) -> None:
+        """Apply one tab's calibration/cup/limits/density to all other image tabs."""
+        source_tab = self.sender()
+        count = 0
+        for i in range(self._tab_widget.count()):
+            w = self._tab_widget.widget(i)
+            if isinstance(w, ImageTab) and w is not source_tab:
+                w.apply_shared_settings(calibration, cup_mask, limits, density)
+                count += 1
+        if count:
+            QMessageBox.information(
+                self,
+                "Settings Applied",
+                f"Calibration, cup mask, and limits copied to {count} other tab(s).\n"
+                "Click \u2018Look for Grains\u2019 on each tab to run detection."
+            )
+
+    def _new_batch_tab(self) -> None:
+        """Open a new batch-test tab."""
+        # Remove welcome placeholder if present
+        if self._welcome_tab is not None:
+            idx = self._tab_widget.indexOf(self._welcome_tab)
+            if idx >= 0:
+                self._tab_widget.removeTab(idx)
+            self._welcome_tab = None
+            self._tab_widget.setTabsClosable(True)
+
+        tab = BatchTab()
+        batch_count = sum(
+            1 for i in range(self._tab_widget.count())
+            if isinstance(self._tab_widget.widget(i), BatchTab)
+        ) + 1
+        label = f"Batch {batch_count}"
+        idx = self._tab_widget.addTab(tab, label)
+        self._tab_widget.setCurrentIndex(idx)
 
     # ------------------------------------------------------------------
     # Session persistence

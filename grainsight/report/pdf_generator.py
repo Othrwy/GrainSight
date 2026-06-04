@@ -74,18 +74,26 @@ def _title_page(meta: ReportMetadata, sessions: List[ImageSession]) -> Figure:
     y0 -= 0.02
     ax.axhline(y0 + 0.015, color=_MUTED, linewidth=0.4, alpha=0.4, xmin=0.08, xmax=0.92)
     t(0.08, y0, "Image", color=_GOLD, fontsize=8.5, va="top")
-    t(0.45, y0, "Grains (incl / excl)", color=_GOLD, fontsize=8.5, va="top")
-    t(0.70, y0, "Mean Avg Diam (mm)", color=_GOLD, fontsize=8.5, va="top")
+    t(0.42, y0, "Grains (incl / excl)", color=_GOLD, fontsize=8.5, va="top")
+    t(0.64, y0, "Mean ± SD (mm)", color=_GOLD, fontsize=8.5, va="top")
+    t(0.84, y0, "Est. Mass (mg)", color=_GOLD, fontsize=8.5, va="top")
     y0 -= 0.032
     for s in sessions:
         inc = len(s.included_grains)
         exc = len(s.excluded_grains)
         vals = get_values(s.grains, "avg_size")
-        mean_str = f"{np.mean(vals):.3f}" if vals else "—"
+        if vals:
+            st = sd_percentages(vals)
+            mean_sd_str = f"{st['mean']:.3f} ± {st['std']:.3f}"
+        else:
+            mean_sd_str = "—"
+        total_mass = sum(g.volume_mm3 * s.grain_density_g_cm3 for g in s.included_grains)
+        mass_str = f"{total_mass:.4f}" if s.included_grains else "—"
         name = os.path.splitext(os.path.basename(s.image_path))[0]
-        t(0.08, y0, name[:45], color=_TEXT, fontsize=8, va="top")
-        t(0.45, y0, f"{inc} / {exc}", color=_TEXT, fontsize=8, va="top")
-        t(0.70, y0, mean_str, color=_TEXT, fontsize=8, va="top")
+        t(0.08, y0, name[:38], color=_TEXT, fontsize=8, va="top")
+        t(0.42, y0, f"{inc} / {exc}", color=_TEXT, fontsize=8, va="top")
+        t(0.64, y0, mean_sd_str, color=_TEXT, fontsize=8, va="top")
+        t(0.84, y0, mass_str, color=_TEXT, fontsize=8, va="top")
         y0 -= 0.028
 
     # Footer
@@ -130,7 +138,14 @@ def generate_pdf(
             scope = cfg.get("scope", "combined")
             per_image = scope == "per_image"
             bins = int(cfg.get("bins", 30))
-            show_fit = bool(cfg.get("normal_fit", False))
+            fit_distribution = cfg.get("fit_distribution", "none")
+            # Legacy support: old configs stored boolean flags instead of fit_distribution
+            if fit_distribution == "none":
+                if cfg.get("normal_fit"):
+                    fit_distribution = "normal"
+                elif cfg.get("lognormal_fit"):
+                    fit_distribution = "lognormal"
+            show_mean = bool(cfg.get("show_mean", False))
             show_sd = (
                 bool(cfg.get("show_1sd", False)),
                 bool(cfg.get("show_2sd", False)),
@@ -140,7 +155,9 @@ def generate_pdf(
             if ptype == "histogram":
                 fig = make_histogram(
                     sessions, metric, bins=bins,
-                    show_normal_fit=show_fit, show_sd=show_sd,
+                    fit_distribution=fit_distribution,
+                    show_mean=show_mean,
+                    show_sd=show_sd,
                     per_image=per_image,
                 )
             elif ptype == "boxplot":

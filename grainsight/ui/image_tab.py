@@ -443,6 +443,7 @@ class ImageTab(QWidget):
     """Full analysis tab for a single image."""
 
     session_changed = pyqtSignal()  # fires whenever analysis/calibration updates
+    propagate_to_all = pyqtSignal(object, object, object, object)  # (calibration, cup_mask, limits, density)
 
     def __init__(
         self,
@@ -455,7 +456,7 @@ class ImageTab(QWidget):
         self._image_bgr = image_bgr
         self._thread: Optional[QThread] = None
         self._worker: Optional[_AnalysisWorker] = None
-        self._calib_mode_choice = "edge_detect"  # default
+        self._calib_mode_choice = "two_point"  # default
 
         self._build_ui()
         self._viewer.load_image(image_bgr)
@@ -484,6 +485,7 @@ class ImageTab(QWidget):
         # Calibration mode toggle
         self._calib_mode_combo = QComboBox()
         self._calib_mode_combo.addItems(["Edge Detection", "Two-Point Click"])
+        self._calib_mode_combo.setCurrentIndex(1)
         self._calib_mode_combo.setToolTip(
             "Edge Detection: draw a box around reference edges\n"
             "Two-Point Click: click two known points on the image"
@@ -511,7 +513,7 @@ class ImageTab(QWidget):
         self._min_spin = QDoubleSpinBox()
         self._min_spin.setRange(0.01, 10.0)
         self._min_spin.setDecimals(2)
-        self._min_spin.setValue(0.2)
+        self._min_spin.setValue(self._session.limits.min_mm)
         self._min_spin.setSuffix(" mm")
         self._min_spin.setFixedWidth(90)
         self._min_spin.valueChanged.connect(self._on_limits_changed)
@@ -521,7 +523,7 @@ class ImageTab(QWidget):
         self._max_spin = QDoubleSpinBox()
         self._max_spin.setRange(0.01, 20.0)
         self._max_spin.setDecimals(2)
-        self._max_spin.setValue(1.0)
+        self._max_spin.setValue(self._session.limits.max_mm)
         self._max_spin.setSuffix(" mm")
         self._max_spin.setFixedWidth(90)
         self._max_spin.valueChanged.connect(self._on_limits_changed)
@@ -567,6 +569,36 @@ class ImageTab(QWidget):
         self._export_btn.setEnabled(False)
         self._export_btn.clicked.connect(self._export_csv)
         tbl.addWidget(self._export_btn)
+
+        sep5 = QFrame()
+        sep5.setFrameShape(QFrame.Shape.VLine)
+        sep5.setStyleSheet("color: #363630;")
+        tbl.addWidget(sep5)
+
+        tbl.addWidget(QLabel("Density:"))
+        self._density_spin = QDoubleSpinBox()
+        self._density_spin.setRange(0.1, 20.0)
+        self._density_spin.setDecimals(3)
+        self._density_spin.setValue(self._session.grain_density_g_cm3)
+        self._density_spin.setSuffix(" g/cm³")
+        self._density_spin.setFixedWidth(110)
+        self._density_spin.setToolTip(
+            "Grain material density for mass estimation.\n"
+            "Volume assumes depth = minor diameter (oblate spheroid)."
+        )
+        self._density_spin.valueChanged.connect(self._on_density_changed)
+        tbl.addWidget(self._density_spin)
+
+        sep6 = QFrame()
+        sep6.setFrameShape(QFrame.Shape.VLine)
+        sep6.setStyleSheet("color: #363630;")
+        tbl.addWidget(sep6)
+
+        self._propagate_btn = QPushButton("Propagate to All")
+        self._propagate_btn.setToolTip("Copy calibration, cup mask, limits, and density to all other image tabs")
+        self._propagate_btn.setEnabled(False)
+        self._propagate_btn.clicked.connect(self._on_propagate_btn_clicked)
+        tbl.addWidget(self._propagate_btn)
 
         tbl.addStretch()
         root.addWidget(toolbar)
@@ -706,15 +738,30 @@ class ImageTab(QWidget):
             self._calib_status.style().unpolish(self._calib_status)
             self._calib_status.style().polish(self._calib_status)
             self._find_btn.setEnabled(True)
+            self._propagate_btn.setEnabled(True)
         else:
             self._calib_status.setText("⚠  Not calibrated")
             self._calib_status.setObjectName("status_warn")
             self._find_btn.setEnabled(False)
+            self._propagate_btn.setEnabled(False)
         self.session_changed.emit()
 
     # ------------------------------------------------------------------
     # Analysis
     # ------------------------------------------------------------------
+
+    def _on_density_changed(self, value: float) -> None:
+        self._session.grain_density_g_cm3 = value
+        if self._session.analysed:
+            n_total = len(self._session.grains)
+            n_inc = len(self._session.included_grains)
+            n_exc = len(self._session.excluded_grains)
+            total_mass = sum(g.volume_mm3 * value for g in self._session.included_grains)
+            self._count_bar.setText(
+                f"Detected: {n_total}  |  Included: {n_inc}  |"
+                f"  Excluded: {n_exc}  |  Mass: {total_mass:.4f} mg"
+            )
+        self.session_changed.emit()
 
     def _on_limits_changed(self) -> None:
         self._session.limits.min_mm = self._min_spin.value()
@@ -777,8 +824,11 @@ class ImageTab(QWidget):
         n_total = len(grains)
         n_inc = len(self._session.included_grains)
         n_exc = len(self._session.excluded_grains)
+        density = self._session.grain_density_g_cm3
+        total_mass = sum(g.volume_mm3 * density for g in self._session.included_grains)
         self._count_bar.setText(
-            f"Detected: {n_total}  |  Included: {n_inc}  |  Excluded: {n_exc}"
+            f"Detected: {n_total}  |  Included: {n_inc}  |"
+            f"  Excluded: {n_exc}  |  Mass: {total_mass:.4f} mg"
         )
 
     def _refresh_table(self, grains: List[GrainResult]) -> None:
@@ -819,3 +869,41 @@ class ImageTab(QWidget):
             QMessageBox.information(self, "Exported", f"CSV saved to:\n{path}")
         except Exception as exc:
             QMessageBox.critical(self, "Export Error", str(exc))
+
+    # ------------------------------------------------------------------
+    # Propagate settings to other tabs
+    # ------------------------------------------------------------------
+
+    def _on_propagate_btn_clicked(self) -> None:
+        self.propagate_to_all.emit(
+            self._session.calibration,
+            self._session.cup_mask,
+            self._session.limits,
+            self._session.grain_density_g_cm3,
+        )
+
+    def apply_shared_settings(
+        self,
+        calibration: object,
+        cup_mask: object,
+        limits: object,
+        density: float = 1.5,
+    ) -> None:
+        """Apply calibration, cup mask, limits, and density from another tab."""
+        self._session.calibration = calibration
+        self._session.cup_mask = cup_mask
+        self._session.limits = limits
+        self._session.grain_density_g_cm3 = density
+
+        # Sync UI controls to the new values
+        self._min_spin.blockSignals(True)
+        self._max_spin.blockSignals(True)
+        self._density_spin.blockSignals(True)
+        self._min_spin.setValue(limits.min_mm)
+        self._max_spin.setValue(limits.max_mm)
+        self._density_spin.setValue(density)
+        self._min_spin.blockSignals(False)
+        self._max_spin.blockSignals(False)
+        self._density_spin.blockSignals(False)
+
+        self._update_calib_status()
