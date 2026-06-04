@@ -11,16 +11,16 @@
   </filter>
  </defs>
  <g>
-  <!-- Background -->
-  <rect width="48" height="48" rx="9" fill="#1a1a2a"/>
-
-  <title>GrainSight</title>
-  <ellipse transform="rotate(20 34.3174 11.5397)" filter="url(#svg_3_blur)" ry="9.60314" rx="10.47616" id="svg_3" cy="11.53972" cx="34.31743" fill="#969606"/>
-  <path id="svg_15" d="m14.39686,23.20635c-3.99017,0 -7.2222,-1.88239 -7.2222,-4.20634c0,-2.32394 3.23203,-4.20634 7.2222,-4.20634c3.99017,0 7.2222,1.88239 7.2222,4.20634c0,2.32394 -3.23203,4.20634 -7.2222,4.20634z" transform="rotate(33.8695 14.3969 19)" filter="url(#svg_15_blur)" opacity="undefined" fill="#d1d110"/>
+  <title>Layer 1</title>
+  <path transform="rotate(-38 15.5291 25.1525)" stroke="null" id="svg_23" d="m15.52914,30.46012c-3.99016,0 -7.2222,-2.37523 -7.2222,-5.3076c0,-2.93239 3.23204,-5.30762 7.2222,-5.30762c3.99017,0 7.2222,2.37523 7.2222,5.30762c0,2.93238 -3.23203,5.3076 -7.2222,5.3076z" filter="url(#svg_15_blur)" opacity="undefined" fill="#d1d110"/>
+  <ellipse transform="rotate(42 36.0726 11.2965)" stroke="null" filter="url(#svg_3_blur)" ry="9.39997" rx="7.35044" id="svg_3" cy="11.2965" cx="36.07262" fill="#969606"/>
+  <path transform="rotate(33.8695 14.873 8.52386)" id="svg_15" d="m14.87305,12.7302c-3.99017,0 -7.2222,-1.88239 -7.2222,-4.20634c0,-2.32394 3.23203,-4.20634 7.2222,-4.20634c3.99017,0 7.2222,1.88239 7.2222,4.20634c0,2.32394 -3.23203,4.20634 -7.2222,4.20634z" filter="url(#svg_15_blur)" opacity="undefined" fill="#d1d110"/>
   <ellipse transform="rotate(-52 31.1428 35.0317)" filter="url(#svg_16_blur)" ry="10.23806" rx="10.95235" id="svg_16" cy="35.03171" cx="31.14284" fill="#ffff00"/>
   <line stroke="#fcfced" id="svg_18" y2="35" x2="0" y1="35" x1="19" fill="none"/>
+  <line stroke="#fcfced" id="svg_19" y2="35" x2="0" y1="35" x1="19" fill="none"/>
   <line id="svg_20" y2="35" x2="48.12691" y1="35" x1="42.7301" stroke="#fcfced" fill="none"/>
   <line id="svg_21" y2="0" x2="31" y1="23" x1="31" stroke="#fcfced" fill="none"/>
   <line stroke="#ffffed" id="svg_22" y2="49" x2="31" y1="47" x1="31" fill="none"/>
+  <path transform="rotate(-40.2731 7.01365 40.1956)" stroke="null" id="svg_24" d="m7.01365,44.56571c-2.62403,0 -4.7495,-1.9557 -4.7495,-4.37015c0,-2.41446 2.12547,-4.37015 4.7495,-4.37015c2.62404,0 4.7495,1.9557 4.7495,4.37015c0,2.41445 -2.12546,4.37015 -4.7495,4.37015z" filter="url(#svg_15_blur)" opacity="undefined" fill="#9e9e06"/>
  </g>
 </svg>
