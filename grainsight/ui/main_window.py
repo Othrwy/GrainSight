@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 from typing import Dict, List, Optional
 
 import cv2
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QAction, QIcon
+
+_ICON_PATH = Path(__file__).resolve().parent.parent / "assets" / "icons" / "app_icon.svg"
 from PyQt6.QtWidgets import (
     QFileDialog,
     QHBoxLayout,
@@ -42,6 +45,8 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("GrainSight")
         self.resize(1280, 820)
         self.setStyleSheet(QSS)
+        if _ICON_PATH.exists():
+            self.setWindowIcon(QIcon(str(_ICON_PATH)))
 
         self._sessions: Dict[int, ImageSession] = {}  # tab_index → session
         self._tabs_to_sessions: Dict[QWidget, ImageSession] = {}
