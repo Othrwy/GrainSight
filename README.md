@@ -4,10 +4,10 @@ Dimension analyser for images of small spheroidal particles.
 
 OVERVIEW
 
-- This script allows you upload an image of semi-spheroidal particles and will scan through, picking out the smallest and largest diameter for each grain.
-- It can then find the mean/SD, generate histograms and fit distributions - all outputted in a PDF.
-- It can report min, max, average diameters and spheroidicity.
-- It can also calculate volume and mass but assuming the third dimension is =Ømin and entering a density.
+This script allows you upload an image of semi-spheroidal particles and will scan through, picking out the smallest and largest diameter for each grain.<br />
+It can then find the mean/SD, generate histograms and fit distributions - all outputted in a PDF.<br />
+It can report min, max, average diameters and spheroidicity.<br />
+It can also calculate volume and mass but assuming the third dimension is =Ømin and entering a density.<br />
 
 
 PHOTO QUALITY ← IMPORTANT!
