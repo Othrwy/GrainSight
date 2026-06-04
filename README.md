@@ -33,5 +33,5 @@ HOW TO USE
 
 DEV NOTES
 
-⚠️ Multi images may be a big buggy
+⚠️ Multi images may be a big buggy<br />
 ⚠️ Auto Calibrate is far from optimised
